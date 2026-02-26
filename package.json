@@ -1,0 +1,11 @@
+{
+  "name": "domain-appraisal",
+  "version": "1.0.0",
+  "description": "NovaDomain AI appraisal tool with backend API and persistent history",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "check": "node --check server.js"
+  },
+  "license": "MIT"
+}

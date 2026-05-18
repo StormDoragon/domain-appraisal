@@ -354,6 +354,37 @@
         line-height: 1.4;
       }
 
+      .status-line {
+        color: #cbd5e1;
+        font-size: 0.8rem;
+        line-height: 1.45;
+      }
+
+      .value-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(130px, 1fr));
+        gap: 0.5rem;
+      }
+
+      .value-band {
+        border: 1px solid rgba(148, 163, 184, 0.3);
+        border-radius: 0.8rem;
+        padding: 0.55rem;
+        background: rgba(15, 23, 42, 0.55);
+      }
+
+      .value-band span {
+        display: block;
+        color: #93c5fd;
+        font-size: 0.72rem;
+      }
+
+      .value-band strong {
+        display: block;
+        margin-top: 0.28rem;
+        font-size: 0.86rem;
+      }
+
       @media (max-width: 1120px) {
         .grid {
           grid-template-columns: 1fr;
@@ -367,7 +398,8 @@
       @media (max-width: 760px) {
         .layout,
         .row,
-        .insights {
+        .insights,
+        .value-grid {
           grid-template-columns: 1fr;
         }
       }
@@ -378,15 +410,15 @@
       <section class="hero">
         <h1>NovaDomain AI Appraisal Lab</h1>
         <p>
-          A next-gen appraisal engine that scores domain quality, market intent,
-          investor liquidity, and brand acquisition fit in one explainable report.
-          Tune assumptions, simulate risk, and get a realistic listing strategy.
+          A comp-first domain appraisal tool that separates verified market evidence
+          from owner-supplied assumptions, heuristic demo estimates, and negotiation
+          strategy.
         </p>
         <div class="badge-row">
           <span class="badge">Explainable Scoring</span>
-          <span class="badge">Deterministic Comparable Sales</span>
+          <span class="badge">Verified Comparable Sales</span>
           <span class="badge">Investor Liquidity Signal</span>
-          <span class="badge">Outbound Angle Generator</span>
+          <span class="badge">Evidence-Based Confidence</span>
         </div>
       </section>
 
@@ -397,6 +429,14 @@
             <div class="field">
               <label for="domain">Domain name</label>
               <input id="domain" name="domain" value="neuralcanvas.ai" required />
+            </div>
+
+            <div class="field">
+              <label for="mode">Appraisal mode</label>
+              <select id="mode" name="mode">
+                <option value="authentic" selected>Authentic - verified comps required</option>
+                <option value="demo">Demo - heuristic fallback allowed</option>
+              </select>
             </div>
 
             <div class="row">
@@ -457,14 +497,13 @@
             </div>
 
             <div class="actions">
-              <button class="primary" type="submit">Run Deep Appraisal</button>
+              <button class="primary" type="submit">Run Appraisal</button>
               <button class="ghost" id="copyReport" type="button">Copy JSON Report</button>
             </div>
           </form>
           <p class="hint">
-            This model is deterministic and reproducible for the same input values.
-            It blends linguistic quality, market demand, and liquidity to propose
-            a negotiation-ready price corridor.
+            Authentic mode will not issue a market-supported value until at least
+            3 verified comparable sales match the target domain.
           </p>
           <p class="status" id="apiStatus">Backend mode: checking…</p>
 
@@ -478,9 +517,10 @@
           </div>
           <div class="field">
             <label for="compData">Comparable sales payload</label>
-            <textarea id="compData">domain,price,date,vertical,tld,source,keywords
-neuralforge.ai,125000,2025-06-11,AI,.ai,NameBio,"neural, forge, ai"
-canvaspilot.ai,98000,2025-09-02,AI,.ai,Afternic,"canvas, pilot, creative"</textarea>
+            <textarea id="compData">domain,price,saleDate,vertical,tld,venue,sourceUrl,saleType,verificationStatus,keywords
+neuralforge.ai,125000,2025-06-11,AI,.ai,NameBio,https://example.com/neuralforge,retail_end_user,verified_public_sale,"neural, forge, ai"
+canvaspilot.ai,98000,2025-09-02,AI,.ai,Afternic,https://example.com/canvaspilot,retail_end_user,verified_public_sale,"canvas, pilot, creative"
+neuraldesign.ai,76000,2025-12-12,AI,.ai,Sedo,https://example.com/neuraldesign,retail_end_user,verified_public_sale,"neural, design, creative ai"</textarea>
           </div>
           <div class="actions">
             <button class="ghost" id="importComps" type="button">Import Sales Data</button>
@@ -503,10 +543,15 @@ canvaspilot.ai,98000,2025-09-02,AI,.ai,Afternic,"canvas, pilot, creative"</texta
               <strong id="scoreOut">0 / 100</strong>
             </article>
             <article class="metric">
-              <span>Liquidity</span>
+              <span>Grade / Liquidity</span>
               <strong id="liquidityOut">Low</strong>
             </article>
           </div>
+
+          <article class="card">
+            <h3>Appraisal Status</h3>
+            <p class="status-line" id="statusOut">Waiting for appraisal.</p>
+          </article>
 
           <div class="layout">
             <article class="card">
@@ -529,10 +574,20 @@ canvaspilot.ai,98000,2025-09-02,AI,.ai,Afternic,"canvas, pilot, creative"</texta
             </article>
 
             <article class="card">
-              <h3>Risk / Opportunity Radar</h3>
-              <div class="insights" id="insightOut"></div>
+              <h3>Value Context</h3>
+              <div class="value-grid" id="valueBandsOut"></div>
             </article>
           </div>
+
+          <article class="card">
+            <h3>Evidence Summary</h3>
+            <div class="list" id="evidenceOut"></div>
+          </article>
+
+          <article class="card">
+            <h3>Risk / Opportunity Radar</h3>
+            <div class="insights" id="insightOut"></div>
+          </article>
 
           <article class="card pricing">
             <h3>Pricing Strategy & Outbound Angle</h3>
@@ -579,6 +634,9 @@ canvaspilot.ai,98000,2025-09-02,AI,.ai,Afternic,"canvas, pilot, creative"</texta
       const personaOut = document.getElementById("personaOut");
       const compsOut = document.getElementById("compsOut");
       const compsMeta = document.getElementById("compsMeta");
+      const statusOut = document.getElementById("statusOut");
+      const evidenceOut = document.getElementById("evidenceOut");
+      const valueBandsOut = document.getElementById("valueBandsOut");
       const insightOut = document.getElementById("insightOut");
       const strategyOut = document.getElementById("strategyOut");
       const historyOut = document.getElementById("historyOut");
@@ -593,6 +651,9 @@ canvaspilot.ai,98000,2025-09-02,AI,.ai,Afternic,"canvas, pilot, creative"</texta
       }
 
       function asMoney(amount) {
+        if (!Number.isFinite(amount)) {
+          return "Needs comps";
+        }
         return new Intl.NumberFormat("en-US", {
           style: "currency",
           currency: "USD",
@@ -754,10 +815,14 @@ canvaspilot.ai,98000,2025-09-02,AI,.ai,Afternic,"canvas, pilot, creative"</texta
 
       function renderAppraisal(report) {
         document.getElementById("valueOut").textContent = asMoney(report.estimated);
-        document.getElementById("rangeOut").textContent = `${asMoney(report.low)} — ${asMoney(report.high)}`;
+        document.getElementById("rangeOut").textContent = `${asMoney(report.low)} - ${asMoney(report.high)}`;
         document.getElementById("scoreOut").textContent = `${report.qualityScore} / 100`;
-        document.getElementById("liquidityOut").textContent = report.liquidityLabel;
+        document.getElementById("liquidityOut").textContent = `${report.appraisalGrade || "D"} / ${report.liquidityLabel}`;
         document.getElementById("confidenceOut").textContent = `Confidence: ${report.confidenceLabel} (${report.confidence}%)`;
+        statusOut.textContent =
+          report.appraisalStatus === "insufficient_verified_comps"
+            ? `Insufficient evidence: ${report.evidenceSummary?.verifiedCompsUsed || 0} verified matching comps found. Authentic mode requires ${report.evidenceSummary?.requiredVerifiedComps || 3}. Heuristic signal: ${asMoney(report.modelOnlyEstimated)}.`
+            : `${report.valuationMethod || "heuristic"} result using ${report.evidenceSummary?.matchedCompsUsed || 0} matched comps. Model version: ${report.modelVersion || "local"}.`;
 
         scoreBars.innerHTML = "";
         Object.entries(report.components).forEach(([name, value]) => {
@@ -773,14 +838,38 @@ canvaspilot.ai,98000,2025-09-02,AI,.ai,Afternic,"canvas, pilot, creative"</texta
 
         personaOut.innerHTML = report.personas.map((persona) => `<span class="chip">${persona}</span>`).join("");
 
-        compsMeta.textContent = `Source: ${report.compsSource || "Synthetic"} • Matched: ${report.matchedCompsCount || 0}`;
+        compsMeta.textContent = `Source: ${report.compsSource || "Synthetic"} - Matched: ${report.matchedCompsCount || 0}`;
 
-        compsOut.innerHTML = report.comps
+        compsOut.innerHTML = (report.comps || [])
           .map(
             (comp) =>
               `<div class="list-item"><span>${comp.domain || comp.name}${comp.similarity ? ` (${Math.round(comp.similarity * 100)}% match)` : ""}</span><strong>${asMoney(comp.price)}</strong></div>`
           )
           .join("");
+
+        const evidence = report.evidenceSummary || {};
+        evidenceOut.innerHTML = [
+          ["Verified comps used", evidence.verifiedCompsUsed ?? 0],
+          ["Weighted median comp", asMoney(evidence.weightedMedianCompPrice)],
+          ["Comp p25 / p50 / p75", `${asMoney(evidence.compPriceRange?.p25)} / ${asMoney(evidence.compPriceRange?.p50)} / ${asMoney(evidence.compPriceRange?.p75)}`],
+          ["Average similarity", evidence.averageSimilarity ? `${Math.round(evidence.averageSimilarity * 100)}%` : "n/a"]
+        ]
+          .map(([label, value]) => `<div class="list-item"><span>${label}</span><strong>${value}</strong></div>`)
+          .join("");
+
+        const bands = report.valueBands;
+        valueBandsOut.innerHTML = bands
+          ? [
+              ["Liquidation", bands.liquidationValue],
+              ["Investor", bands.investorValue],
+              ["End-user retail", bands.endUserRetailValue]
+            ]
+              .map(
+                ([label, band]) =>
+                  `<article class="value-band"><span>${label}</span><strong>${asMoney(band.low)} - ${asMoney(band.high)}</strong></article>`
+              )
+              .join("")
+          : '<p class="footer-note">Import more verified matching comps to unlock value bands.</p>';
 
         const insightBlocks = [
           ...report.opportunities.map((text) => `<article class="insight good">${text}</article>`),
@@ -794,6 +883,7 @@ canvaspilot.ai,98000,2025-09-02,AI,.ai,Afternic,"canvas, pilot, creative"</texta
       function formInput() {
         return {
           domain: document.getElementById("domain").value,
+          mode: document.getElementById("mode").value,
           vertical: document.getElementById("vertical").value,
           tld: document.getElementById("tld").value,
           traffic: Number(document.getElementById("traffic").value || 0),
@@ -819,7 +909,7 @@ canvaspilot.ai,98000,2025-09-02,AI,.ai,Afternic,"canvas, pilot, creative"</texta
         historyOut.innerHTML = items
           .map((item) => {
             const domain = item?.input?.domain || "unknown";
-            const value = asMoney(item?.result?.estimated || 0);
+            const value = asMoney(item?.result?.estimated);
             const score = item?.result?.qualityScore || 0;
             const at = new Date(item.generatedAt).toLocaleString();
             return `<article class="history-item"><div><strong>${domain}</strong><small>${at}</small></div><div><strong>${value}</strong><small>${score}/100</small></div></article>`;

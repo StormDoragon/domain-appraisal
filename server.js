@@ -41,6 +41,9 @@ function clamp(value, min, max) {
 }
 
 function asMoney(amount) {
+  if (!Number.isFinite(amount)) {
+    return "unpriced";
+  }
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
@@ -95,6 +98,24 @@ function parseNumber(value, fallback = 0) {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
+function normalizeVerificationStatus(value) {
+  const status = String(value || "").trim().toLowerCase();
+  if (["verified", "verified_public_sale", "public_verified", "confirmed"].includes(status)) {
+    return "verified_public_sale";
+  }
+  if (["owner_supplied", "self_reported"].includes(status)) {
+    return "owner_supplied";
+  }
+  if (["estimated", "appraisal", "model"].includes(status)) {
+    return "estimated";
+  }
+  return "unverified_import";
+}
+
+function isVerifiedComparable(comp) {
+  return comp?.verificationStatus === "verified_public_sale";
+}
+
 function normalizeComparable(record) {
   const domain = String(record?.domain || "").trim().toLowerCase();
   if (!domain) {
@@ -102,7 +123,8 @@ function normalizeComparable(record) {
   }
 
   const core = domainCore(domain);
-  const date = record?.date ? new Date(record.date) : null;
+  const dateValue = record?.saleDate || record?.date;
+  const date = dateValue ? new Date(dateValue) : null;
   const price = parseNumber(record?.price, 0);
   if (price <= 0) {
     return null;
@@ -113,8 +135,13 @@ function normalizeComparable(record) {
     label: core.label,
     tld: core.tld,
     price: Math.round(price),
+    currency: String(record?.currency || "USD").trim().toUpperCase() || "USD",
     vertical: String(record?.vertical || "").trim() || null,
-    source: String(record?.source || "Imported").trim() || "Imported",
+    venue: String(record?.venue || record?.source || "Imported").trim() || "Imported",
+    source: String(record?.source || record?.venue || "Imported").trim() || "Imported",
+    sourceUrl: String(record?.sourceUrl || record?.url || "").trim() || null,
+    saleType: String(record?.saleType || "unknown").trim().toLowerCase() || "unknown",
+    verificationStatus: normalizeVerificationStatus(record?.verificationStatus || record?.verified),
     date: date && !Number.isNaN(date.valueOf()) ? date.toISOString() : null,
     traffic: parseNumber(record?.traffic, 0),
     cpc: parseNumber(record?.cpc, 0),
@@ -193,6 +220,57 @@ function recencyScore(dateIso) {
   return clamp(1 - ageDays / 1460, 0.28, 1);
 }
 
+function percentile(sortedNumbers, percentileValue) {
+  if (!sortedNumbers.length) {
+    return null;
+  }
+  const index = (sortedNumbers.length - 1) * percentileValue;
+  const lower = Math.floor(index);
+  const upper = Math.ceil(index);
+  if (lower === upper) {
+    return sortedNumbers[lower];
+  }
+  const weight = index - lower;
+  return sortedNumbers[lower] * (1 - weight) + sortedNumbers[upper] * weight;
+}
+
+function weightedMedian(items, getValue, getWeight) {
+  const weighted = items
+    .map((item) => ({
+      value: getValue(item),
+      weight: Math.max(getWeight(item), 0)
+    }))
+    .filter((item) => Number.isFinite(item.value) && item.value > 0 && item.weight > 0)
+    .sort((a, b) => a.value - b.value);
+
+  if (!weighted.length) {
+    return null;
+  }
+
+  const totalWeight = weighted.reduce((sum, item) => sum + item.weight, 0);
+  let running = 0;
+  for (const item of weighted) {
+    running += item.weight;
+    if (running >= totalWeight / 2) {
+      return item.value;
+    }
+  }
+  return weighted[weighted.length - 1].value;
+}
+
+function appraisalGrade(verifiedCompCount, averageSimilarity, dispersionRatio) {
+  if (verifiedCompCount >= 10 && averageSimilarity >= 0.72 && dispersionRatio <= 1.4) {
+    return "A";
+  }
+  if (verifiedCompCount >= 5 && averageSimilarity >= 0.62) {
+    return "B";
+  }
+  if (verifiedCompCount >= 3) {
+    return "C";
+  }
+  return "D";
+}
+
 function findComparableMatches(input, comparables, limit = 4) {
   const inputCore = domainCore(input.domain);
   const inputTrigrams = trigrams(inputCore.label);
@@ -251,6 +329,7 @@ function normalizeInput(input) {
 
 function runAppraisal(inputRaw, options = {}) {
   const input = normalizeInput(inputRaw);
+  const mode = String(options.mode || inputRaw?.mode || inputRaw?.appraisalMode || "authentic").toLowerCase();
   const core = domainCore(input.domain);
   const keywordList = tokenizeKeywords(input.keywords);
 
@@ -305,32 +384,62 @@ function runAppraisal(inputRaw, options = {}) {
   }).sort((a, b) => b.price - a.price);
 
   const importedComps = Array.isArray(options.comparables) ? options.comparables : [];
-  const matchedRealComps = importedComps.length ? findComparableMatches(input, importedComps, 4) : [];
+  const eligibleComps =
+    mode === "authentic" ? importedComps.filter(isVerifiedComparable) : importedComps;
+  const matchedRealComps = eligibleComps.length ? findComparableMatches(input, eligibleComps, 8) : [];
+  const verifiedCompCount = matchedRealComps.filter(isVerifiedComparable).length;
+  const averageSimilarity = matchedRealComps.length
+    ? matchedRealComps.reduce((sum, comp) => sum + comp.similarity, 0) / matchedRealComps.length
+    : 0;
 
   let blendedEstimated = estimated;
-  if (matchedRealComps.length) {
-    const weighted = matchedRealComps.reduce(
-      (acc, item) => {
-        const weight = item.similarity || 0.4;
-        return {
-          numerator: acc.numerator + item.price * weight,
-          denominator: acc.denominator + weight
-        };
-      },
-      { numerator: 0, denominator: 0 }
-    );
-    const matchedAverage = weighted.denominator ? weighted.numerator / weighted.denominator : estimated;
-    blendedEstimated = Math.round(estimated * 0.56 + matchedAverage * 0.44);
+  const compWeightedMedian = weightedMedian(
+    matchedRealComps,
+    (item) => item.price,
+    (item) => item.similarity || 0.4
+  );
+
+  if (matchedRealComps.length && mode !== "authentic") {
+    blendedEstimated = Math.round(estimated * 0.56 + compWeightedMedian * 0.44);
   }
 
-  const blendedLow = Math.round(blendedEstimated * 0.82);
-  const blendedHigh = Math.round(blendedEstimated * 1.3);
-  const comps = matchedRealComps.length
+  if (mode === "authentic" && matchedRealComps.length >= 3 && compWeightedMedian) {
+    blendedEstimated = Math.round(compWeightedMedian);
+  }
+
+  const compPrices = matchedRealComps.map((comp) => comp.price).sort((a, b) => a - b);
+  const compP25 = percentile(compPrices, 0.25);
+  const compP75 = percentile(compPrices, 0.75);
+  const dispersionRatio = compP25 && compP75 ? compP75 / compP25 : 99;
+  const appraisalStatus =
+    mode === "authentic" && matchedRealComps.length < 3
+      ? "insufficient_verified_comps"
+      : mode === "authentic"
+        ? "market_supported"
+        : "heuristic_demo";
+
+  const blendedLow =
+    appraisalStatus === "insufficient_verified_comps"
+      ? null
+      : Math.round(mode === "authentic" && compP25 ? compP25 * 0.9 : blendedEstimated * 0.82);
+  const blendedHigh =
+    appraisalStatus === "insufficient_verified_comps"
+      ? null
+      : Math.round(mode === "authentic" && compP75 ? compP75 * 1.15 : blendedEstimated * 1.3);
+  const outputEstimated = appraisalStatus === "insufficient_verified_comps" ? null : blendedEstimated;
+  const comps = appraisalStatus === "insufficient_verified_comps"
+    ? []
+    : matchedRealComps.length
     ? matchedRealComps.map((comp) => ({
         domain: comp.domain,
         price: comp.price,
         similarity: comp.similarity,
-        source: comp.source || "Imported"
+        source: comp.source || "Imported",
+        venue: comp.venue || comp.source || "Imported",
+        saleDate: comp.date,
+        saleType: comp.saleType,
+        verificationStatus: comp.verificationStatus,
+        sourceUrl: comp.sourceUrl
       }))
     : syntheticComps;
 
@@ -367,22 +476,99 @@ function runAppraisal(inputRaw, options = {}) {
     TLD: Math.round((tldBoost / 1.45) * 100)
   };
 
-  const strategy = `Launch at ${asMoney(blendedHigh)} with a floor near ${asMoney(blendedLow)}. Prioritize ${personas[0]} and ${personas[1]} outreach. Position ${core.full} as a category-defining digital asset with ${Math.round(confidence)}% confidence and ${liquidityLabel.toLowerCase()}-to-${liquidityLabel === "High" ? "high" : "medium"} liquidity. Offer a 7-day decision window and anchor using top comparable ${comps[0].domain} at ${asMoney(comps[0].price)}.`;
+  const dataQuality = {
+    comps:
+      mode === "authentic"
+        ? matchedRealComps.length >= 3
+          ? "verified"
+          : "missing_verified_comps"
+        : matchedRealComps.length
+          ? "imported"
+          : "synthetic_demo",
+    traffic: input.traffic > 0 ? "owner_supplied" : "missing",
+    cpc: input.cpc > 0 ? "owner_supplied" : "missing",
+    age: input.age > 0 ? "owner_supplied" : "missing",
+    keywords: keywordList.length ? "owner_supplied" : "missing"
+  };
+
+  const evidenceSummary = {
+    verifiedCompsUsed: verifiedCompCount,
+    matchedCompsUsed: matchedRealComps.length,
+    medianCompPrice: compPrices.length ? Math.round(percentile(compPrices, 0.5)) : null,
+    weightedMedianCompPrice: compWeightedMedian ? Math.round(compWeightedMedian) : null,
+    compPriceRange: {
+      p25: compP25 ? Math.round(compP25) : null,
+      p50: compPrices.length ? Math.round(percentile(compPrices, 0.5)) : null,
+      p75: compP75 ? Math.round(compP75) : null
+    },
+    averageSimilarity: Number(averageSimilarity.toFixed(3)),
+    requiredVerifiedComps: mode === "authentic" ? 3 : 0
+  };
+
+  const grade = appraisalGrade(verifiedCompCount, averageSimilarity, dispersionRatio);
+  const evidenceConfidence = clamp(
+    verifiedCompCount * 12 + averageSimilarity * 45 + (dispersionRatio <= 1.8 ? 18 : 6),
+    30,
+    96
+  );
+  const outputConfidence = mode === "authentic" ? evidenceConfidence : confidence;
+  const outputConfidenceLabel =
+    outputConfidence > 84 ? "Very High" : outputConfidence > 70 ? "High" : outputConfidence > 58 ? "Moderate" : "Early Data";
+
+  const valueBands =
+    appraisalStatus === "insufficient_verified_comps"
+      ? null
+      : {
+          liquidationValue: {
+            low: Math.round(blendedLow * 0.22),
+            mid: Math.round(outputEstimated * 0.32),
+            high: Math.round(outputEstimated * 0.45)
+          },
+          investorValue: {
+            low: Math.round(blendedLow * 0.65),
+            mid: Math.round(outputEstimated * 0.82),
+            high: Math.round(outputEstimated * 1.05)
+          },
+          endUserRetailValue: {
+            low: blendedLow,
+            mid: outputEstimated,
+            high: blendedHigh
+          }
+        };
+
+  const strategy =
+    appraisalStatus === "insufficient_verified_comps"
+      ? `Authentic mode needs at least 3 verified comparable sales before it can issue a market-supported value for ${core.full}. The heuristic-only estimate is ${asMoney(estimated)}, but it should be treated as a preliminary model signal, not an appraisal.`
+      : `Launch at ${asMoney(blendedHigh)} with a floor near ${asMoney(blendedLow)}. Prioritize ${personas[0]} and ${personas[1]} outreach. Position ${core.full} as a category-defining digital asset with ${Math.round(outputConfidence)}% evidence confidence and ${liquidityLabel.toLowerCase()}-to-${liquidityLabel === "High" ? "high" : "medium"} liquidity. Anchor using top comparable ${comps[0].domain} at ${asMoney(comps[0].price)}.`;
 
   return {
     core,
-    estimated: blendedEstimated,
+    appraisalStatus,
+    appraisalGrade: grade,
+    valuationMethod: mode === "authentic" ? "verified_comparable_weighted_median" : "heuristic_score_blend",
+    modelVersion: "2026.05-authentic-mvp",
+    estimated: outputEstimated,
     low: blendedLow,
     high: blendedHigh,
     modelOnlyEstimated: estimated,
+    valueBands,
     qualityScore,
     liquidityLabel,
-    confidenceLabel,
-    confidence: Math.round(confidence),
+    confidenceLabel: outputConfidenceLabel,
+    confidence: Math.round(outputConfidence),
+    evidenceSummary,
+    dataQuality,
     components,
     personas,
     comps,
-    compsSource: matchedRealComps.length ? "Imported" : "Synthetic",
+    compsSource:
+      appraisalStatus === "insufficient_verified_comps"
+        ? "No verified matches"
+        : matchedRealComps.length
+          ? mode === "authentic"
+            ? "Verified Imported"
+            : "Imported"
+          : "Synthetic",
     matchedCompsCount: matchedRealComps.length,
     opportunities,
     risks,
@@ -506,7 +692,7 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "POST" && url.pathname === "/api/appraise") {
       const body = await parseBody(req);
       const comps = await readComps();
-      const result = runAppraisal(body, { comparables: comps });
+      const result = runAppraisal(body, { comparables: comps, mode: body?.mode || body?.appraisalMode });
       sendJson(res, 200, { result });
       return;
     }

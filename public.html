@@ -3,1081 +3,481 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>NovaDomain AI — Domain Appraisal Lab</title>
+    <title>Domain Appraisal — Instant Domain Value Estimates</title>
     <style>
       :root {
-        color-scheme: dark;
+        color-scheme: light;
         font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
-        --bg: #060a17;
-        --bg-2: #0d1325;
-        --card: #111a31;
-        --card-2: #15203b;
-        --line: rgba(148, 163, 184, 0.25);
-        --text: #e2e8f0;
-        --muted: #94a3b8;
-        --accent: #22d3ee;
-        --accent-2: #818cf8;
-        --good: #34d399;
-        --warn: #f59e0b;
+        --bg: #f4f6fb;
+        --card: #ffffff;
+        --ink: #0f172a;
+        --muted: #64748b;
+        --line: #e2e8f0;
+        --brand: #1bdbb4;
+        --brand-ink: #0a8f76;
+        --accent: #2563eb;
+        --good: #16a34a;
+        --warn: #d97706;
+        --bad: #dc2626;
+        --shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
       }
 
-      * {
-        box-sizing: border-box;
-      }
+      * { box-sizing: border-box; }
 
       body {
         margin: 0;
         min-height: 100vh;
-        color: var(--text);
-        background:
-          radial-gradient(circle at 20% -20%, rgba(34, 211, 238, 0.22), transparent 38%),
-          radial-gradient(circle at 100% 0%, rgba(129, 140, 248, 0.2), transparent 45%),
-          var(--bg);
+        color: var(--ink);
+        background: var(--bg);
       }
 
-      .shell {
-        width: min(1220px, 100% - 2rem);
-        margin: 1.5rem auto 2rem;
-      }
-
-      .hero {
-        padding: 2rem;
-        border: 1px solid var(--line);
-        border-radius: 1.5rem;
-        background: linear-gradient(130deg, rgba(14, 23, 42, 0.9), rgba(17, 26, 49, 0.7));
-      }
-
-      .hero h1 {
-        margin: 0;
-        font-size: clamp(1.8rem, 2.8vw + 1rem, 3rem);
-        letter-spacing: -0.03em;
-      }
-
-      .hero p {
-        margin: 0.9rem 0 0;
-        color: #cbd5e1;
-        line-height: 1.55;
-        max-width: 72ch;
-      }
-
-      .badge-row {
-        margin-top: 1.15rem;
+      header.topbar {
+        background: #0b1020;
+        color: #fff;
+        padding: 0.85rem 1.25rem;
         display: flex;
-        gap: 0.5rem;
-        flex-wrap: wrap;
-      }
-
-      .badge {
-        border: 1px solid rgba(148, 163, 184, 0.35);
-        border-radius: 999px;
-        padding: 0.35rem 0.8rem;
-        font-size: 0.78rem;
-        color: #dbeafe;
-        background: rgba(15, 23, 42, 0.72);
-      }
-
-      .grid {
-        margin-top: 1rem;
-        display: grid;
-        grid-template-columns: 360px 1fr;
-        gap: 1rem;
-      }
-
-      .panel {
-        border: 1px solid var(--line);
-        border-radius: 1.25rem;
-        background: linear-gradient(180deg, var(--card), #0d162d);
-      }
-
-      .left {
-        padding: 1rem;
-      }
-
-      h2 {
-        font-size: 0.95rem;
-        text-transform: uppercase;
-        letter-spacing: 0.1em;
-        color: #a5b4fc;
-        margin: 0 0 0.8rem;
-      }
-
-      form {
-        display: grid;
-        gap: 0.7rem;
-      }
-
-      .field {
-        display: grid;
-        gap: 0.32rem;
-      }
-
-      .field label {
-        font-size: 0.79rem;
-        color: #bfdbfe;
-      }
-
-      input,
-      select,
-      textarea {
-        width: 100%;
-        border: 1px solid rgba(148, 163, 184, 0.4);
-        border-radius: 0.72rem;
-        background: rgba(15, 23, 42, 0.72);
-        color: #f8fafc;
-        padding: 0.62rem 0.72rem;
-        font: inherit;
-      }
-
-      textarea {
-        min-height: 68px;
-        resize: vertical;
-      }
-
-      .row {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
+        align-items: center;
         gap: 0.6rem;
       }
+      header.topbar .logo {
+        width: 26px; height: 26px; border-radius: 7px;
+        background: linear-gradient(135deg, var(--brand), #38bdf8);
+        display: grid; place-items: center; color: #04201a; font-weight: 900;
+      }
+      header.topbar strong { font-size: 1.02rem; letter-spacing: -0.01em; }
+      header.topbar span.tag { color: #94a3b8; font-size: 0.8rem; margin-left: auto; }
 
-      .actions {
-        margin-top: 0.2rem;
-        display: flex;
-        gap: 0.55rem;
+      .shell { width: min(1080px, 100% - 2rem); margin: 0 auto 3rem; }
+
+      .hero {
+        text-align: center;
+        padding: 2.6rem 1rem 1.2rem;
+      }
+      .hero h1 {
+        margin: 0;
+        font-size: clamp(1.7rem, 3vw + 1rem, 2.7rem);
+        letter-spacing: -0.03em;
+      }
+      .hero p {
+        margin: 0.7rem auto 0;
+        max-width: 60ch;
+        color: var(--muted);
+        line-height: 1.55;
       }
 
-      button {
+      .search {
+        margin: 1.5rem auto 0;
+        max-width: 680px;
+        display: flex;
+        gap: 0.5rem;
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 0.45rem 0.45rem 0.45rem 1.1rem;
+        box-shadow: var(--shadow);
+      }
+      .search input {
+        flex: 1;
+        border: 0;
+        outline: none;
+        font-size: 1.05rem;
+        background: transparent;
+        color: var(--ink);
+      }
+      .search button {
         border: 0;
         cursor: pointer;
         border-radius: 999px;
-        padding: 0.65rem 1rem;
-        font-weight: 700;
-        letter-spacing: 0.02em;
+        padding: 0 1.5rem;
+        font-weight: 800;
+        font-size: 0.98rem;
+        color: #04201a;
+        background: linear-gradient(135deg, var(--brand), #38bdf8);
+      }
+      .search button:disabled { opacity: 0.6; cursor: progress; }
+
+      .examples { text-align: center; margin-top: 0.8rem; color: var(--muted); font-size: 0.85rem; }
+      .examples button {
+        border: 1px solid var(--line); background: #fff; color: var(--accent);
+        border-radius: 999px; padding: 0.22rem 0.7rem; margin: 0 0.18rem; cursor: pointer; font-size: 0.82rem;
       }
 
-      .primary {
-        color: #081224;
-        background: linear-gradient(120deg, var(--accent), #60a5fa);
-      }
+      .error { text-align: center; color: var(--bad); margin-top: 0.8rem; font-size: 0.9rem; min-height: 1.1rem; }
 
-      .ghost {
-        color: #e2e8f0;
-        border: 1px solid rgba(148, 163, 184, 0.5);
-        background: rgba(15, 23, 42, 0.65);
-      }
+      .result { margin-top: 1.5rem; display: none; }
+      .result.show { display: block; }
 
-      .hint {
-        margin-top: 0.6rem;
-        font-size: 0.78rem;
-        color: var(--muted);
-        line-height: 1.45;
+      .valuecard {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 1.25rem;
+        box-shadow: var(--shadow);
+        padding: 1.6rem;
+        text-align: center;
       }
+      .valuecard .domain { font-size: 1.25rem; font-weight: 800; letter-spacing: -0.01em; }
+      .valuecard .estimate {
+        font-size: clamp(2.6rem, 6vw, 4rem);
+        font-weight: 900;
+        letter-spacing: -0.03em;
+        margin: 0.2rem 0 0.1rem;
+        color: var(--ink);
+      }
+      .valuecard .range { color: var(--muted); font-size: 0.95rem; }
+      .pillrow { display: flex; justify-content: center; gap: 0.5rem; flex-wrap: wrap; margin-top: 1rem; }
+      .pill {
+        border: 1px solid var(--line); border-radius: 999px; padding: 0.4rem 0.85rem;
+        font-size: 0.82rem; background: #f8fafc; display: inline-flex; gap: 0.4rem; align-items: center;
+      }
+      .pill b { color: var(--ink); }
+      .conf-dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+      .conf-High { background: var(--good); }
+      .conf-Medium { background: var(--warn); }
+      .conf-Low { background: var(--bad); }
 
-      .right {
-        padding: 1rem;
-        display: grid;
-        gap: 1rem;
-      }
-
-      .top-metrics {
-        display: grid;
-        grid-template-columns: repeat(4, minmax(140px, 1fr));
-        gap: 0.7rem;
-      }
-
-      .metric {
-        border: 1px solid rgba(148, 163, 184, 0.35);
-        background: linear-gradient(180deg, rgba(30, 41, 59, 0.7), rgba(15, 23, 42, 0.7));
-        border-radius: 0.95rem;
-        padding: 0.85rem;
-      }
-
-      .metric span {
-        display: block;
-        font-size: 0.72rem;
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-        color: #93c5fd;
-      }
-
-      .metric strong {
-        display: block;
-        margin-top: 0.38rem;
-        font-size: clamp(1.05rem, 1.8vw, 1.4rem);
-      }
-
-      .layout {
-        display: grid;
-        grid-template-columns: 1.35fr 1fr;
-        gap: 0.85rem;
-      }
+      .columns { margin-top: 1rem; display: grid; grid-template-columns: 1.25fr 1fr; gap: 1rem; }
 
       .card {
-        border: 1px solid rgba(148, 163, 184, 0.3);
-        border-radius: 1rem;
-        background: linear-gradient(180deg, rgba(30, 41, 59, 0.5), rgba(15, 23, 42, 0.45));
-        padding: 0.85rem;
+        background: var(--card); border: 1px solid var(--line);
+        border-radius: 1.1rem; box-shadow: var(--shadow); padding: 1.1rem 1.2rem;
       }
-
       .card h3 {
-        margin: 0 0 0.55rem;
-        font-size: 0.9rem;
-        color: #c7d2fe;
+        margin: 0 0 0.9rem; font-size: 0.78rem; text-transform: uppercase;
+        letter-spacing: 0.08em; color: var(--muted);
       }
 
-      .score-bars {
-        display: grid;
-        gap: 0.4rem;
+      table.comps { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+      table.comps th {
+        text-align: left; color: var(--muted); font-weight: 600; font-size: 0.74rem;
+        text-transform: uppercase; letter-spacing: 0.05em; padding-bottom: 0.5rem; border-bottom: 1px solid var(--line);
+      }
+      table.comps td { padding: 0.55rem 0; border-bottom: 1px solid var(--line); vertical-align: middle; }
+      table.comps tr:last-child td { border-bottom: 0; }
+      table.comps .dn { font-weight: 700; }
+      table.comps .meta { color: var(--muted); font-size: 0.76rem; }
+      table.comps .price { text-align: right; font-weight: 800; white-space: nowrap; }
+      .match {
+        display: inline-block; min-width: 38px; text-align: center; font-size: 0.72rem; font-weight: 700;
+        color: var(--brand-ink); background: rgba(27, 219, 180, 0.16); border-radius: 999px; padding: 0.1rem 0.45rem;
       }
 
-      .bar {
-        display: grid;
-        grid-template-columns: 96px 1fr 42px;
-        gap: 0.4rem;
-        align-items: center;
-        font-size: 0.78rem;
-      }
+      .bar { display: grid; grid-template-columns: 96px 1fr 38px; gap: 0.5rem; align-items: center; font-size: 0.82rem; margin-bottom: 0.55rem; }
+      .bar:last-child { margin-bottom: 0; }
+      .bar-track { height: 8px; border-radius: 999px; background: #eef2f7; overflow: hidden; }
+      .bar-fill { height: 100%; background: linear-gradient(90deg, var(--brand), var(--accent)); }
+      .bar strong { text-align: right; color: var(--ink); }
 
-      .bar-track {
-        height: 8px;
-        border-radius: 999px;
-        background: rgba(100, 116, 139, 0.35);
-        overflow: hidden;
-      }
+      ul.reasons { margin: 0; padding-left: 1.1rem; color: #334155; font-size: 0.88rem; line-height: 1.5; }
+      ul.reasons li { margin-bottom: 0.35rem; }
 
-      .bar-fill {
-        height: 100%;
-        background: linear-gradient(90deg, #22d3ee, #818cf8);
-      }
+      .attrs { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; font-size: 0.85rem; }
+      .attr { display: flex; justify-content: space-between; border-bottom: 1px dashed var(--line); padding-bottom: 0.3rem; }
+      .attr span { color: var(--muted); }
+      .attr b { color: var(--ink); }
 
-      .chips,
-      .list {
-        display: flex;
-        gap: 0.42rem;
-        flex-wrap: wrap;
-      }
-
-      .chip {
-        padding: 0.35rem 0.55rem;
-        border-radius: 0.65rem;
-        font-size: 0.76rem;
-        background: rgba(99, 102, 241, 0.2);
-        border: 1px solid rgba(129, 140, 248, 0.4);
-      }
-
-      .list {
-        flex-direction: column;
-        align-items: stretch;
-      }
-
-      .list-item {
-        border: 1px solid rgba(148, 163, 184, 0.3);
-        border-radius: 0.8rem;
-        padding: 0.5rem 0.6rem;
-        font-size: 0.8rem;
-        display: flex;
-        justify-content: space-between;
-        gap: 0.5rem;
-        color: #d1d5db;
-      }
-
-      .insights {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(170px, 1fr));
-        gap: 0.55rem;
-      }
-
-      .insight {
-        border-radius: 0.8rem;
-        padding: 0.52rem 0.6rem;
-        border: 1px solid rgba(148, 163, 184, 0.3);
-        background: rgba(15, 23, 42, 0.55);
-        font-size: 0.77rem;
-        line-height: 1.35;
-      }
-
-      .good {
-        border-color: rgba(52, 211, 153, 0.5);
-        background: rgba(16, 185, 129, 0.16);
-      }
-
-      .warn {
-        border-color: rgba(245, 158, 11, 0.45);
-        background: rgba(245, 158, 11, 0.14);
-      }
-
-      .pricing {
-        font-size: 0.8rem;
-        line-height: 1.45;
-        color: #dbeafe;
-      }
-
-      .pricing strong {
-        color: #f8fafc;
-      }
-
-      .footer-note {
-        margin-top: 0.5rem;
-        color: var(--muted);
-        font-size: 0.75rem;
-      }
-
-      .status {
-        margin-top: 0.45rem;
-        font-size: 0.74rem;
-        color: #bfdbfe;
-      }
-
-      .history-list {
-        display: grid;
-        gap: 0.45rem;
-      }
-
+      .history { margin-top: 1rem; }
+      .history-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 0.5rem; }
       .history-item {
-        border: 1px solid rgba(148, 163, 184, 0.3);
-        border-radius: 0.75rem;
-        padding: 0.45rem 0.55rem;
-        display: grid;
-        grid-template-columns: 1fr auto;
-        gap: 0.35rem;
-        align-items: center;
-        background: rgba(15, 23, 42, 0.5);
+        border: 1px solid var(--line); border-radius: 0.8rem; padding: 0.55rem 0.7rem; cursor: pointer; background: #fff;
       }
+      .history-item:hover { border-color: var(--brand); }
+      .history-item .h-domain { font-weight: 700; font-size: 0.85rem; }
+      .history-item .h-value { color: var(--accent); font-weight: 800; font-size: 0.95rem; }
+      .history-item small { color: var(--muted); font-size: 0.7rem; }
 
-      .history-item small {
-        color: #93c5fd;
-        font-size: 0.72rem;
+      details.advanced { margin-top: 1.1rem; }
+      details.advanced summary { cursor: pointer; color: var(--accent); font-size: 0.85rem; font-weight: 600; }
+      .advanced-body { margin-top: 0.7rem; }
+      .advanced-body textarea {
+        width: 100%; min-height: 90px; border: 1px solid var(--line); border-radius: 0.7rem; padding: 0.6rem; font: inherit;
       }
-
-      .mini {
-        font-size: 0.73rem;
-        color: #93c5fd;
-        line-height: 1.4;
+      .advanced-body select, .advanced-body button.ghost {
+        border: 1px solid var(--line); border-radius: 0.6rem; padding: 0.45rem 0.7rem; font: inherit; background: #fff; cursor: pointer;
       }
+      .advanced-row { display: flex; gap: 0.5rem; align-items: center; margin-top: 0.5rem; flex-wrap: wrap; }
+      .muted-note { color: var(--muted); font-size: 0.78rem; margin-top: 0.5rem; line-height: 1.45; }
 
-      .status-line {
-        color: #cbd5e1;
-        font-size: 0.8rem;
-        line-height: 1.45;
-      }
+      footer { text-align: center; color: var(--muted); font-size: 0.78rem; margin-top: 2rem; line-height: 1.5; }
 
-      .value-grid {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(130px, 1fr));
-        gap: 0.5rem;
-      }
-
-      .value-band {
-        border: 1px solid rgba(148, 163, 184, 0.3);
-        border-radius: 0.8rem;
-        padding: 0.55rem;
-        background: rgba(15, 23, 42, 0.55);
-      }
-
-      .value-band span {
-        display: block;
-        color: #93c5fd;
-        font-size: 0.72rem;
-      }
-
-      .value-band strong {
-        display: block;
-        margin-top: 0.28rem;
-        font-size: 0.86rem;
-      }
-
-      @media (max-width: 1120px) {
-        .grid {
-          grid-template-columns: 1fr;
-        }
-
-        .top-metrics {
-          grid-template-columns: repeat(2, minmax(120px, 1fr));
-        }
-      }
-
-      @media (max-width: 760px) {
-        .layout,
-        .row,
-        .insights,
-        .value-grid {
-          grid-template-columns: 1fr;
-        }
+      @media (max-width: 820px) {
+        .columns { grid-template-columns: 1fr; }
       }
     </style>
   </head>
   <body>
+    <header class="topbar">
+      <div class="logo">D</div>
+      <strong>Domain Appraisal</strong>
+      <span class="tag" id="apiTag">checking backend…</span>
+    </header>
+
     <main class="shell">
       <section class="hero">
-        <h1>NovaDomain AI Appraisal Lab</h1>
+        <h1>What's your domain worth?</h1>
         <p>
-          A comp-first domain appraisal tool that separates verified market evidence
-          from owner-supplied assumptions, heuristic demo estimates, and negotiation
-          strategy.
+          Enter any domain name to get an instant estimated value, backed by
+          comparable sales of similar domains and an explainable breakdown of
+          what's driving the price.
         </p>
-        <div class="badge-row">
-          <span class="badge">Explainable Scoring</span>
-          <span class="badge">Verified Comparable Sales</span>
-          <span class="badge">Investor Liquidity Signal</span>
-          <span class="badge">Evidence-Based Confidence</span>
+
+        <form class="search" id="searchForm">
+          <input
+            id="domainInput"
+            name="domain"
+            placeholder="enter a domain, e.g. brightpath.com"
+            autocomplete="off"
+            spellcheck="false"
+            value="brightpath.com"
+          />
+          <button id="goBtn" type="submit">Get Value</button>
+        </form>
+
+        <div class="examples">
+          Try:
+          <button type="button" class="example">voice.com</button>
+          <button type="button" class="example">neuralcanvas.ai</button>
+          <button type="button" class="example">payflow.com</button>
+          <button type="button" class="example">getstarted.io</button>
         </div>
+        <div class="error" id="errorOut"></div>
       </section>
 
-      <section class="grid">
-        <aside class="panel left">
-          <h2>Input Model</h2>
-          <form id="appraisalForm">
-            <div class="field">
-              <label for="domain">Domain name</label>
-              <input id="domain" name="domain" value="neuralcanvas.ai" required />
-            </div>
+      <section class="result" id="result">
+        <div class="valuecard">
+          <div class="domain" id="rDomain">—</div>
+          <div class="estimate" id="rEstimate">$0</div>
+          <div class="range">Estimated value range: <span id="rRange">—</span></div>
+          <div class="pillrow">
+            <span class="pill">Quality score <b id="rScore">0</b>/100</span>
+            <span class="pill">
+              <span class="conf-dot" id="rConfDot"></span> Confidence <b id="rConf">—</b>
+            </span>
+            <span class="pill">Based on <b id="rCompCount">0</b> comparable sales</span>
+          </div>
+        </div>
 
-            <div class="field">
-              <label for="mode">Appraisal mode</label>
-              <select id="mode" name="mode">
-                <option value="authentic" selected>Authentic - verified comps required</option>
-                <option value="demo">Demo - heuristic fallback allowed</option>
-              </select>
-            </div>
+        <div class="columns">
+          <article class="card">
+            <h3>Comparable Sales</h3>
+            <table class="comps">
+              <thead>
+                <tr><th>Domain</th><th>Sold</th><th style="text-align:right">Price</th></tr>
+              </thead>
+              <tbody id="compsBody"></tbody>
+            </table>
+            <p class="muted-note" id="compsNote"></p>
+          </article>
 
-            <div class="row">
-              <div class="field">
-                <label for="vertical">Vertical</label>
-                <select id="vertical" name="vertical">
-                  <option>AI</option>
-                  <option>FinTech</option>
-                  <option>Cybersecurity</option>
-                  <option>Healthcare</option>
-                  <option>Travel</option>
-                  <option>Ecommerce</option>
-                </select>
-              </div>
-              <div class="field">
-                <label for="tld">TLD strength profile</label>
-                <select id="tld" name="tld">
-                  <option>.com</option>
-                  <option>.ai</option>
-                  <option>.io</option>
-                  <option>.org</option>
-                  <option>.co</option>
-                  <option>.net</option>
-                </select>
-              </div>
-            </div>
+          <article class="card">
+            <h3>Value Drivers</h3>
+            <div id="barsOut"></div>
+            <h3 style="margin-top:1.1rem">Domain Attributes</h3>
+            <div class="attrs" id="attrsOut"></div>
+          </article>
+        </div>
 
-            <div class="row">
-              <div class="field">
-                <label for="traffic">Monthly traffic</label>
-                <input id="traffic" name="traffic" type="number" min="0" value="24000" />
-              </div>
-              <div class="field">
-                <label for="cpc">Estimated CPC ($)</label>
-                <input id="cpc" name="cpc" type="number" min="0" step="0.1" value="5.4" />
-              </div>
-            </div>
+        <article class="card" style="margin-top:1rem">
+          <h3>Why this value?</h3>
+          <ul class="reasons" id="reasonsOut"></ul>
+        </article>
+      </section>
 
-            <div class="row">
-              <div class="field">
-                <label for="age">Domain age (years)</label>
-                <input id="age" name="age" type="number" min="0" value="7" />
-              </div>
-              <div class="field">
-                <label for="intent">Buyer intent pressure</label>
-                <select id="intent" name="intent">
-                  <option value="0.9">Low</option>
-                  <option value="1" selected>Normal</option>
-                  <option value="1.12">High</option>
-                  <option value="1.25">Very High</option>
-                </select>
-              </div>
-            </div>
+      <article class="card history" id="historyCard" style="display:none">
+        <h3>Recent Appraisals</h3>
+        <div class="history-grid" id="historyOut"></div>
+      </article>
 
-            <div class="field">
-              <label for="keywords">Keywords / semantic hints (comma separated)</label>
-              <textarea id="keywords" name="keywords">neural, canvas, creative ai, design automation</textarea>
-            </div>
-
-            <div class="actions">
-              <button class="primary" type="submit">Run Appraisal</button>
-              <button class="ghost" id="copyReport" type="button">Copy JSON Report</button>
-            </div>
-          </form>
-          <p class="hint">
-            Authentic mode will not issue a market-supported value until at least
-            3 verified comparable sales match the target domain.
+      <details class="advanced">
+        <summary>Advanced: import your own comparable sales</summary>
+        <div class="advanced-body">
+          <p class="muted-note">
+            The estimator ships with a built-in set of public aftermarket sales.
+            You can add your own verified comps (CSV or JSON) to sharpen
+            valuations for a specific niche.
           </p>
-          <p class="status" id="apiStatus">Backend mode: checking…</p>
-
-          <h2 style="margin-top: 1rem">Comp Connector</h2>
-          <div class="field">
-            <label for="compFormat">Import format</label>
+          <textarea id="compData">domain,price,date,vertical,venue
+neuralforge.ai,18500,2024-01-01,AI,NameBio
+synthflow.ai,14000,2024-03-01,AI,Dan</textarea>
+          <div class="advanced-row">
             <select id="compFormat">
               <option value="csv">CSV</option>
               <option value="json">JSON</option>
             </select>
+            <button class="ghost" id="importComps" type="button">Import comps</button>
+            <span class="muted-note" id="compStatus" style="margin-top:0"></span>
           </div>
-          <div class="field">
-            <label for="compData">Comparable sales payload</label>
-            <textarea id="compData">domain,price,saleDate,vertical,tld,venue,sourceUrl,saleType,verificationStatus,keywords
-neuralforge.ai,125000,2025-06-11,AI,.ai,NameBio,https://example.com/neuralforge,retail_end_user,verified_public_sale,"neural, forge, ai"
-canvaspilot.ai,98000,2025-09-02,AI,.ai,Afternic,https://example.com/canvaspilot,retail_end_user,verified_public_sale,"canvas, pilot, creative"
-neuraldesign.ai,76000,2025-12-12,AI,.ai,Sedo,https://example.com/neuraldesign,retail_end_user,verified_public_sale,"neural, design, creative ai"</textarea>
-          </div>
-          <div class="actions">
-            <button class="ghost" id="importComps" type="button">Import Sales Data</button>
-          </div>
-          <p class="status" id="compStatus">Comparable pool: checking…</p>
-        </aside>
+        </div>
+      </details>
 
-        <section class="panel right">
-          <div class="top-metrics">
-            <article class="metric">
-              <span>Estimated Market Value</span>
-              <strong id="valueOut">$0</strong>
-            </article>
-            <article class="metric">
-              <span>Listing Corridor</span>
-              <strong id="rangeOut">$0 — $0</strong>
-            </article>
-            <article class="metric">
-              <span>Quality Score</span>
-              <strong id="scoreOut">0 / 100</strong>
-            </article>
-            <article class="metric">
-              <span>Grade / Liquidity</span>
-              <strong id="liquidityOut">Low</strong>
-            </article>
-          </div>
-
-          <article class="card">
-            <h3>Appraisal Status</h3>
-            <p class="status-line" id="statusOut">Waiting for appraisal.</p>
-          </article>
-
-          <div class="layout">
-            <article class="card">
-              <h3>Explainable Score Engine</h3>
-              <div class="score-bars" id="scoreBars"></div>
-              <p class="footer-note" id="confidenceOut">Confidence: --</p>
-            </article>
-
-            <article class="card">
-              <h3>Buyer Persona Matches</h3>
-              <div class="chips" id="personaOut"></div>
-            </article>
-          </div>
-
-          <div class="layout">
-            <article class="card">
-              <h3>Comparable Sales</h3>
-              <p class="mini" id="compsMeta">Source: --</p>
-              <div class="list" id="compsOut"></div>
-            </article>
-
-            <article class="card">
-              <h3>Value Context</h3>
-              <div class="value-grid" id="valueBandsOut"></div>
-            </article>
-          </div>
-
-          <article class="card">
-            <h3>Evidence Summary</h3>
-            <div class="list" id="evidenceOut"></div>
-          </article>
-
-          <article class="card">
-            <h3>Risk / Opportunity Radar</h3>
-            <div class="insights" id="insightOut"></div>
-          </article>
-
-          <article class="card pricing">
-            <h3>Pricing Strategy & Outbound Angle</h3>
-            <p id="strategyOut"></p>
-          </article>
-
-          <article class="card">
-            <h3>Recent Appraisals</h3>
-            <div class="history-list" id="historyOut"></div>
-          </article>
-        </section>
-      </section>
+      <footer>
+        Estimates are a heuristic, comp-anchored decision aid — not a guaranteed
+        sale price or financial advice. Built-in comparable sales reflect public
+        aftermarket data and are illustrative. Always validate with live market
+        listings and buyer conversations.
+      </footer>
     </main>
 
     <script>
-      const tldMultipliers = {
-        ".com": 1.45,
-        ".ai": 1.35,
-        ".io": 1.22,
-        ".org": 1.1,
-        ".co": 1.03,
-        ".net": 0.95
-      };
+      // ---- Lightweight offline fallback engine (used only if backend is down).
+      const TLD_MULTIPLIERS = { ".com":1, ".ai":0.85, ".io":0.6, ".co":0.45, ".app":0.42, ".dev":0.38, ".net":0.32, ".org":0.32, ".xyz":0.18 };
+      function clamp(v,min,max){ return Math.min(Math.max(v,min),max); }
+      function asMoney(n){ return Number.isFinite(n) ? new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",maximumFractionDigits:0}).format(n) : "—"; }
+      function offlineAppraise(domain){
+        const cleaned = String(domain||"").trim().toLowerCase().replace(/^https?:\/\//,"").replace(/^www\./,"").replace(/\/.*$/,"");
+        const parts = cleaned.split("."); const label = parts[0]||""; const tld = parts.length>1?"."+parts.slice(1).join("."):".com";
+        const L = label.length; const hasHyphen = label.includes("-"); const hasNumber = /\d/.test(label);
+        const vowels = (label.match(/[aeiou]/g)||[]).length; const vowelRatio = vowels/Math.max(L,1);
+        const lenScore = L<=3?98:L<=5?88:L<=8?72:L<=12?52:L<=15?40:25;
+        const pronounce = clamp(100 - Math.abs(0.42-vowelRatio)*150, 10, 100);
+        let q = clamp(0.4*lenScore + 0.35*pronounce + 22 - (hasHyphen?22:0) - (hasNumber?16:0), 5, 99);
+        let dollars = 110*Math.pow(10,(q-15)/30);
+        if(L<=3) dollars*=18; else if(L===4) dollars*=6; else if(L===5) dollars*=2.6; else if(L===6) dollars*=1.5;
+        dollars *= (TLD_MULTIPLIERS[tld]||0.25); if(hasHyphen) dollars*=0.55; if(hasNumber) dollars*=0.65;
+        const estimate = Math.max(Math.round(dollars),25);
+        return {
+          domain: cleaned, label, tld, estimate, low: Math.round(estimate*0.7), high: Math.round(estimate*1.5),
+          qualityScore: Math.round(q), confidence: 50, confidenceLabel: "Low",
+          components: { Length: Math.round(lenScore), Memorability: Math.round(pronounce), Keywords: 42, TLD: Math.round((TLD_MULTIPLIERS[tld]||0.25)*100) },
+          attributes: { length: L, words: [], isDictionaryWord: false, hasHyphen, hasNumber, keywordTier: 0, pronounceability: Math.round(pronounce) },
+          comparableSales: [], compsSummary: { matched: 0, medianPrice: null, averageSimilarity: 0 },
+          reasons: ["Offline estimate — start the backend (npm start) for comparable-sales matching."]
+        };
+      }
 
-      const verticalMultipliers = {
-        AI: 1.33,
-        FinTech: 1.28,
-        Cybersecurity: 1.26,
-        Healthcare: 1.18,
-        Travel: 1.07,
-        Ecommerce: 1.12
-      };
-
-      const personasByVertical = {
-        AI: ["LLM Startup", "Creative SaaS", "AI Studio", "VC-backed Rebrand"],
-        FinTech: ["Payments App", "Trading Platform", "Embedded Finance API", "Crypto Custody"],
-        Cybersecurity: ["SOC Automation", "Identity Security", "Threat Intel", "Compliance SaaS"],
-        Healthcare: ["Digital Clinic", "Patient Data Platform", "Health Marketplace", "Remote Care"],
-        Travel: ["Booking Engine", "Travel Community", "Geo Discovery App", "Airline Tooling"],
-        Ecommerce: ["DTC Brand", "Conversion Suite", "Checkout SaaS", "Retail Analytics"]
-      };
-
-      const scoreBars = document.getElementById("scoreBars");
-      const personaOut = document.getElementById("personaOut");
-      const compsOut = document.getElementById("compsOut");
-      const compsMeta = document.getElementById("compsMeta");
-      const statusOut = document.getElementById("statusOut");
-      const evidenceOut = document.getElementById("evidenceOut");
-      const valueBandsOut = document.getElementById("valueBandsOut");
-      const insightOut = document.getElementById("insightOut");
-      const strategyOut = document.getElementById("strategyOut");
-      const historyOut = document.getElementById("historyOut");
-      const apiStatus = document.getElementById("apiStatus");
-      const compStatus = document.getElementById("compStatus");
-      const importCompsButton = document.getElementById("importComps");
-      let latestReport = null;
+      // ---- DOM refs
+      const $ = (id) => document.getElementById(id);
+      const apiTag = $("apiTag");
+      const result = $("result");
+      const errorOut = $("errorOut");
+      const goBtn = $("goBtn");
       let backendOnline = false;
 
-      function clamp(value, min, max) {
-        return Math.min(Math.max(value, min), max);
+      async function fetchJson(url, options){
+        const res = await fetch(url, options);
+        if(!res.ok){ let msg = "Request failed: "+res.status; try { const j = await res.json(); if(j.error) msg = j.error; } catch {} throw new Error(msg); }
+        return res.json();
       }
 
-      function asMoney(amount) {
-        if (!Number.isFinite(amount)) {
-          return "Needs comps";
-        }
-        return new Intl.NumberFormat("en-US", {
-          style: "currency",
-          currency: "USD",
-          maximumFractionDigits: 0
-        }).format(amount);
+      async function detectBackend(){
+        try { const d = await fetchJson("/api/health"); backendOnline = Boolean(d.ok); }
+        catch { backendOnline = false; }
+        apiTag.textContent = backendOnline ? "backend connected" : "offline mode";
       }
 
-      function seedFromDomain(domain) {
-        return [...domain].reduce((hash, char) => ((hash << 5) - hash + char.charCodeAt(0)) | 0, 0);
-      }
-
-      function noise(seed, index) {
-        const x = Math.sin(seed * 0.17 + index * 12.99) * 10000;
-        return x - Math.floor(x);
-      }
-
-      function domainCore(domain) {
-        const cleaned = domain.trim().toLowerCase();
-        const parts = cleaned.split(".");
-        return {
-          full: cleaned,
-          label: parts[0] || "",
-          tld: `.${parts[parts.length - 1] || "com"}`
-        };
-      }
-
-      function syllableCount(word) {
-        return (word.toLowerCase().match(/[aeiouy]+/g) || []).length || 1;
-      }
-
-      function scoreDomainBrandability(label) {
-        const lengthScore = clamp(100 - Math.abs(9 - label.length) * 8, 35, 100);
-        const vowelRatio = (label.match(/[aeiou]/g) || []).length / Math.max(label.length, 1);
-        const vowelScore = clamp(100 - Math.abs(0.42 - vowelRatio) * 190, 20, 100);
-        const hyphenPenalty = label.includes("-") ? 26 : 0;
-        const digitPenalty = /\d/.test(label) ? 20 : 0;
-        const syllables = syllableCount(label);
-        const speakScore = clamp(100 - Math.abs(3 - syllables) * 23, 30, 100);
-        const raw = 0.4 * lengthScore + 0.24 * vowelScore + 0.36 * speakScore - hyphenPenalty - digitPenalty;
-        return clamp(raw, 15, 100);
-      }
-
-      function runAppraisal(input) {
-        const core = domainCore(input.domain);
-        const keywordList = input.keywords
-          .split(",")
-          .map((keyword) => keyword.trim().toLowerCase())
-          .filter(Boolean);
-        const seed = seedFromDomain(core.full || "domain.com");
-
-        const trafficScore = clamp(Math.log10(input.traffic + 1) * 24, 8, 100);
-        const cpcScore = clamp(Math.sqrt(input.cpc + 0.1) * 31, 6, 100);
-        const ageScore = clamp(Math.log(input.age + 1) * 26, 8, 100);
-        const brandScore = scoreDomainBrandability(core.label);
-        const keywordDepth = clamp(keywordList.length * 17 + keywordList.join("").length * 0.85, 10, 100);
-
-        const tldBoost = tldMultipliers[input.tld] || 1;
-        const verticalBoost = verticalMultipliers[input.vertical] || 1;
-
-        const composite = clamp(
-          0.31 * brandScore +
-            0.22 * trafficScore +
-            0.15 * cpcScore +
-            0.12 * ageScore +
-            0.2 * keywordDepth,
-          20,
-          98
-        );
-
-        const qualityScore = Math.round(clamp(composite * tldBoost * 0.75, 12, 100));
-
-        const baseValue =
-          (trafficScore * 120 + cpcScore * 170 + brandScore * 90 + keywordDepth * 70 + ageScore * 60) *
-          tldBoost *
-          verticalBoost *
-          input.intent;
-
-        const premiumNoise = 0.84 + noise(seed, 1) * 0.34;
-        const estimated = Math.round(baseValue * premiumNoise);
-        const low = Math.round(estimated * 0.82);
-        const high = Math.round(estimated * 1.3);
-
-        const liquidityScore = clamp((qualityScore * 0.54 + trafficScore * 0.26 + cpcScore * 0.2) / 1.1, 0, 100);
-        const liquidityLabel = liquidityScore > 74 ? "High" : liquidityScore > 52 ? "Medium" : "Niche";
-
-        const confidence = clamp(55 + (ageScore + keywordDepth + Math.min(input.traffic / 700, 30)) * 0.35, 45, 97);
-        const confidenceLabel = confidence > 84 ? "Very High" : confidence > 70 ? "High" : confidence > 58 ? "Moderate" : "Early Data";
-
-        const personaPool = personasByVertical[input.vertical] || ["Strategic Buyer", "Domain Investor", "Startup"]; 
-        const personas = [
-          personaPool[Math.floor(noise(seed, 3) * personaPool.length)],
-          personaPool[Math.floor(noise(seed, 4) * personaPool.length)],
-          "Global Domain Fund"
-        ].filter((item, index, arr) => arr.indexOf(item) === index);
-
-        const comps = Array.from({ length: 4 }, (_, index) => {
-          const comparablePrice = Math.round(estimated * (0.61 + noise(seed, index + 8) * 0.72));
-          const suffixes = ["labs", "stack", "forge", "grid", "mint", "pilot", "verse"];
-          const stem = core.label.slice(0, Math.max(4, Math.min(core.label.length, 7))) || "prime";
-          const compName = `${stem}${suffixes[Math.floor(noise(seed, index + 21) * suffixes.length)]}${input.tld}`;
-          return { name: compName, price: comparablePrice };
-        }).sort((a, b) => b.price - a.price);
-
-        const opportunities = [];
-        const risks = [];
-
-        if (brandScore > 74) {
-          opportunities.push("Pronounceable and compact brand pattern supports inbound buyer memory.");
-        }
-        if (keywordDepth > 65) {
-          opportunities.push("Multi-intent semantic coverage broadens buyer universe across sub-verticals.");
-        }
-        if (liquidityScore > 70) {
-          opportunities.push("Liquidity profile suggests healthy investor resale probability.");
-        }
-        if (core.label.length > 13) {
-          risks.push("Long label can reduce direct navigation and verbal recall.");
-        }
-        if (input.age < 2) {
-          risks.push("Young domain age may lower trust for premium strategic buyers.");
-        }
-        if (input.cpc < 1.6) {
-          risks.push("Low CPC signal can compress buyer urgency in paid acquisition-heavy sectors.");
-        }
-        if (risks.length === 0) {
-          risks.push("No major structural risk flagged; main variable is negotiation execution speed.");
-        }
-
-        const components = {
-          Brand: Math.round(brandScore),
-          Demand: Math.round((trafficScore * 0.55 + cpcScore * 0.45)),
-          Longevity: Math.round(ageScore),
-          Semantic: Math.round(keywordDepth),
-          TLD: Math.round((tldBoost / 1.45) * 100)
-        };
-
-        const strategy = `Launch at ${asMoney(high)} with a floor near ${asMoney(low)}. Prioritize ${personas[0]} and ${personas[1]} outreach. Position ${core.full} as a category-defining digital asset with ${Math.round(confidence)}% confidence and ${liquidityLabel.toLowerCase()}-to-${liquidityLabel === "High" ? "high" : "medium"} liquidity. Offer a 7-day decision window and anchor using top comparable ${comps[0].name} at ${asMoney(comps[0].price)}.`;
-
-        return {
-          core,
-          estimated,
-          low,
-          high,
-          modelOnlyEstimated: estimated,
-          qualityScore,
-          liquidityLabel,
-          confidenceLabel,
-          confidence: Math.round(confidence),
-          components,
-          personas,
-          comps,
-          compsSource: "Synthetic",
-          matchedCompsCount: 0,
-          opportunities,
-          risks,
-          strategy
-        };
-      }
-
-      function renderAppraisal(report) {
-        document.getElementById("valueOut").textContent = asMoney(report.estimated);
-        document.getElementById("rangeOut").textContent = `${asMoney(report.low)} - ${asMoney(report.high)}`;
-        document.getElementById("scoreOut").textContent = `${report.qualityScore} / 100`;
-        document.getElementById("liquidityOut").textContent = `${report.appraisalGrade || "D"} / ${report.liquidityLabel}`;
-        document.getElementById("confidenceOut").textContent = `Confidence: ${report.confidenceLabel} (${report.confidence}%)`;
-        statusOut.textContent =
-          report.appraisalStatus === "insufficient_verified_comps"
-            ? `Insufficient evidence: ${report.evidenceSummary?.verifiedCompsUsed || 0} verified matching comps found. Authentic mode requires ${report.evidenceSummary?.requiredVerifiedComps || 3}. Heuristic signal: ${asMoney(report.modelOnlyEstimated)}.`
-            : `${report.valuationMethod || "heuristic"} result using ${report.evidenceSummary?.matchedCompsUsed || 0} matched comps. Model version: ${report.modelVersion || "local"}.`;
-
-        scoreBars.innerHTML = "";
-        Object.entries(report.components).forEach(([name, value]) => {
-          const row = document.createElement("div");
-          row.className = "bar";
-          row.innerHTML = `
-            <span>${name}</span>
-            <div class="bar-track"><div class="bar-fill" style="width:${value}%;"></div></div>
-            <strong>${value}</strong>
-          `;
-          scoreBars.appendChild(row);
-        });
-
-        personaOut.innerHTML = report.personas.map((persona) => `<span class="chip">${persona}</span>`).join("");
-
-        compsMeta.textContent = `Source: ${report.compsSource || "Synthetic"} - Matched: ${report.matchedCompsCount || 0}`;
-
-        compsOut.innerHTML = (report.comps || [])
-          .map(
-            (comp) =>
-              `<div class="list-item"><span>${comp.domain || comp.name}${comp.similarity ? ` (${Math.round(comp.similarity * 100)}% match)` : ""}</span><strong>${asMoney(comp.price)}</strong></div>`
-          )
-          .join("");
-
-        const evidence = report.evidenceSummary || {};
-        evidenceOut.innerHTML = [
-          ["Verified comps used", evidence.verifiedCompsUsed ?? 0],
-          ["Weighted median comp", asMoney(evidence.weightedMedianCompPrice)],
-          ["Comp p25 / p50 / p75", `${asMoney(evidence.compPriceRange?.p25)} / ${asMoney(evidence.compPriceRange?.p50)} / ${asMoney(evidence.compPriceRange?.p75)}`],
-          ["Average similarity", evidence.averageSimilarity ? `${Math.round(evidence.averageSimilarity * 100)}%` : "n/a"]
-        ]
-          .map(([label, value]) => `<div class="list-item"><span>${label}</span><strong>${value}</strong></div>`)
-          .join("");
-
-        const bands = report.valueBands;
-        valueBandsOut.innerHTML = bands
-          ? [
-              ["Liquidation", bands.liquidationValue],
-              ["Investor", bands.investorValue],
-              ["End-user retail", bands.endUserRetailValue]
-            ]
-              .map(
-                ([label, band]) =>
-                  `<article class="value-band"><span>${label}</span><strong>${asMoney(band.low)} - ${asMoney(band.high)}</strong></article>`
-              )
-              .join("")
-          : '<p class="footer-note">Import more verified matching comps to unlock value bands.</p>';
-
-        const insightBlocks = [
-          ...report.opportunities.map((text) => `<article class="insight good">${text}</article>`),
-          ...report.risks.map((text) => `<article class="insight warn">${text}</article>`)
-        ];
-
-        insightOut.innerHTML = insightBlocks.join("");
-        strategyOut.innerHTML = `<strong>Outbound narrative:</strong> ${report.strategy}`;
-      }
-
-      function formInput() {
-        return {
-          domain: document.getElementById("domain").value,
-          mode: document.getElementById("mode").value,
-          vertical: document.getElementById("vertical").value,
-          tld: document.getElementById("tld").value,
-          traffic: Number(document.getElementById("traffic").value || 0),
-          cpc: Number(document.getElementById("cpc").value || 0),
-          age: Number(document.getElementById("age").value || 0),
-          intent: Number(document.getElementById("intent").value || 1),
-          keywords: document.getElementById("keywords").value
-        };
-      }
-
-      function setApiStatus() {
-        apiStatus.textContent = backendOnline
-          ? "Backend mode: connected (persistent history enabled)"
-          : "Backend mode: offline fallback (local compute only)";
-      }
-
-      function renderHistory(items) {
-        if (!items.length) {
-          historyOut.innerHTML = '<p class="footer-note">No saved appraisals yet.</p>';
-          return;
-        }
-
-        historyOut.innerHTML = items
-          .map((item) => {
-            const domain = item?.input?.domain || "unknown";
-            const value = asMoney(item?.result?.estimated);
-            const score = item?.result?.qualityScore || 0;
-            const at = new Date(item.generatedAt).toLocaleString();
-            return `<article class="history-item"><div><strong>${domain}</strong><small>${at}</small></div><div><strong>${value}</strong><small>${score}/100</small></div></article>`;
-          })
-          .join("");
-      }
-
-      async function fetchJson(url, options = undefined) {
-        const response = await fetch(url, options);
-        if (!response.ok) {
-          throw new Error(`Request failed: ${response.status}`);
-        }
-        return response.json();
-      }
-
-      async function appraiseWithApi(input) {
-        if (!backendOnline) {
-          return runAppraisal(input);
-        }
-
+      async function runAppraisal(domain){
+        if(!backendOnline) return offlineAppraise(domain);
         try {
-          const data = await fetchJson("/api/appraise", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(input)
-          });
-          return data.result;
-        } catch {
-          backendOnline = false;
-          setApiStatus();
-          return runAppraisal(input);
+          const d = await fetchJson("/api/appraise", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ domain }) });
+          return d.result;
+        } catch(e){
+          if(/required|domain/i.test(e.message)) throw e;
+          backendOnline = false; apiTag.textContent = "offline mode";
+          return offlineAppraise(domain);
         }
       }
 
-      async function saveHistory(input, result) {
-        if (!backendOnline) {
-          return;
-        }
+      function render(r){
+        $("rDomain").textContent = r.domain;
+        $("rEstimate").textContent = asMoney(r.estimate);
+        $("rRange").textContent = `${asMoney(r.low)} – ${asMoney(r.high)}`;
+        $("rScore").textContent = r.qualityScore;
+        $("rConf").textContent = `${r.confidenceLabel} (${r.confidence}%)`;
+        $("rConfDot").className = `conf-dot conf-${r.confidenceLabel}`;
+        $("rCompCount").textContent = r.compsSummary.matched;
 
+        const comps = r.comparableSales || [];
+        $("compsBody").innerHTML = comps.length ? comps.map((c) => `
+          <tr>
+            <td><div class="dn">${c.domain}</div><div class="meta">${c.vertical || "—"} · ${c.venue || ""}</div></td>
+            <td><span class="match">${c.matchPercent}%</span><div class="meta">${c.date ? c.date.slice(0,7) : "—"}</div></td>
+            <td class="price">${c.priceFormatted}</td>
+          </tr>`).join("") : `<tr><td colspan="3" class="meta">No close comparable sales found for this name.</td></tr>`;
+        $("compsNote").textContent = r.compsSummary.medianPrice
+          ? `Median of matched comps: ${asMoney(r.compsSummary.medianPrice)} · average match ${Math.round((r.compsSummary.averageSimilarity||0)*100)}%`
+          : "";
+
+        $("barsOut").innerHTML = Object.entries(r.components).map(([name, val]) => `
+          <div class="bar"><span>${name}</span><div class="bar-track"><div class="bar-fill" style="width:${val}%"></div></div><strong>${val}</strong></div>
+        `).join("");
+
+        const a = r.attributes;
+        const tierLabel = ["None","Premium","Strong","Brandable"][a.keywordTier] || "None";
+        $("attrsOut").innerHTML = [
+          ["Length", `${a.length} chars`],
+          ["Extension", r.tld],
+          ["Real word(s)", a.words.length ? a.words.join(", ") : (a.isDictionaryWord ? "yes" : "coined")],
+          ["Keyword tier", tierLabel],
+          ["Pronounceability", `${a.pronounceability}/100`],
+          ["Flags", [a.hasHyphen?"hyphen":null, a.hasNumber?"number":null].filter(Boolean).join(", ") || "none"]
+        ].map(([k,v]) => `<div class="attr"><span>${k}</span><b>${v}</b></div>`).join("");
+
+        $("reasonsOut").innerHTML = (r.reasons || []).map((t) => `<li>${t}</li>`).join("");
+
+        result.classList.add("show");
+        result.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }
+
+      async function appraiseAndRender(domain){
+        errorOut.textContent = "";
+        if(!String(domain||"").trim()){ errorOut.textContent = "Please enter a domain name."; return; }
+        goBtn.disabled = true; goBtn.textContent = "Valuing…";
         try {
-          await fetchJson("/api/history", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ input, result })
-          });
+          const r = await runAppraisal(domain.trim());
+          render(r);
           await loadHistory();
-        } catch {
-          backendOnline = false;
-          setApiStatus();
-        }
-      }
-
-      async function loadHistory() {
-        if (!backendOnline) {
-          renderHistory([]);
-          return;
-        }
-
-        try {
-          const data = await fetchJson("/api/history?limit=6");
-          renderHistory(data.items || []);
-        } catch {
-          backendOnline = false;
-          setApiStatus();
-          renderHistory([]);
-        }
-      }
-
-      async function detectBackend() {
-        try {
-          const data = await fetchJson("/api/health");
-          backendOnline = Boolean(data.ok);
-        } catch {
-          backendOnline = false;
-        }
-        setApiStatus();
-      }
-
-      async function refreshCompPool() {
-        if (!backendOnline) {
-          compStatus.textContent = "Comparable pool: backend unavailable";
-          return;
-        }
-
-        try {
-          const data = await fetchJson("/api/comps?limit=1");
-          compStatus.textContent = `Comparable pool: ${data.total || 0} records`;
-        } catch {
-          compStatus.textContent = "Comparable pool: unavailable";
-        }
-      }
-
-      importCompsButton.addEventListener("click", async () => {
-        if (!backendOnline) {
-          compStatus.textContent = "Comparable pool: backend unavailable";
-          return;
-        }
-
-        const format = document.getElementById("compFormat").value;
-        const rawData = document.getElementById("compData").value;
-        if (!rawData.trim()) {
-          compStatus.textContent = "Comparable pool: no payload provided";
-          return;
-        }
-
-        importCompsButton.disabled = true;
-        importCompsButton.textContent = "Importing…";
-
-        try {
-          const payload = {
-            format,
-            data: format === "json" ? JSON.parse(rawData) : rawData,
-            source: "Manual Import"
-          };
-
-          const data = await fetchJson("/api/comps/import", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload)
-          });
-
-          compStatus.textContent = `Comparable pool: ${data.total} records (${data.imported} imported)`;
-        } catch (error) {
-          compStatus.textContent = `Comparable pool: import failed (${error.message})`;
+        } catch(e){
+          errorOut.textContent = e.message || "Something went wrong.";
         } finally {
-          importCompsButton.disabled = false;
-          importCompsButton.textContent = "Import Sales Data";
+          goBtn.disabled = false; goBtn.textContent = "Get Value";
         }
-      });
+      }
 
-      document.getElementById("appraisalForm").addEventListener("submit", async (event) => {
-        event.preventDefault();
-        const input = formInput();
-        latestReport = await appraiseWithApi(input);
-        renderAppraisal(latestReport);
-        await saveHistory(input, latestReport);
-      });
-
-      document.getElementById("copyReport").addEventListener("click", async () => {
-        const input = formInput();
-        latestReport = await appraiseWithApi(input);
-        renderAppraisal(latestReport);
-
-        const payload = {
-          generatedAt: new Date().toISOString(),
-          input,
-          result: latestReport
-        };
-
+      async function loadHistory(){
+        if(!backendOnline){ $("historyCard").style.display = "none"; return; }
         try {
-          await navigator.clipboard.writeText(JSON.stringify(payload, null, 2));
-          document.getElementById("copyReport").textContent = "Copied";
-          setTimeout(() => {
-            document.getElementById("copyReport").textContent = "Copy JSON Report";
-          }, 1400);
-        } catch {
-          alert("Clipboard access unavailable. Copy manually from console.");
-          console.log(payload);
-        }
+          const d = await fetchJson("/api/history?limit=8");
+          const items = d.items || [];
+          if(!items.length){ $("historyCard").style.display = "none"; return; }
+          $("historyOut").innerHTML = items.map((it) => `
+            <div class="history-item" data-domain="${it.domain}">
+              <div class="h-domain">${it.domain}</div>
+              <div class="h-value">${asMoney(it.result.estimate)}</div>
+              <small>${new Date(it.generatedAt).toLocaleDateString()}</small>
+            </div>`).join("");
+          $("historyCard").style.display = "block";
+          document.querySelectorAll(".history-item").forEach((el) => {
+            el.addEventListener("click", () => {
+              $("domainInput").value = el.dataset.domain;
+              appraiseAndRender(el.dataset.domain);
+            });
+          });
+        } catch { $("historyCard").style.display = "none"; }
+      }
+
+      // ---- Events
+      $("searchForm").addEventListener("submit", (e) => { e.preventDefault(); appraiseAndRender($("domainInput").value); });
+      document.querySelectorAll(".example").forEach((b) => b.addEventListener("click", () => {
+        $("domainInput").value = b.textContent; appraiseAndRender(b.textContent);
+      }));
+
+      $("importComps").addEventListener("click", async () => {
+        const status = $("compStatus");
+        if(!backendOnline){ status.textContent = "Backend offline — import unavailable."; return; }
+        const format = $("compFormat").value; const raw = $("compData").value;
+        if(!raw.trim()){ status.textContent = "No data provided."; return; }
+        $("importComps").disabled = true; status.textContent = "Importing…";
+        try {
+          const payload = { format, data: format === "json" ? JSON.parse(raw) : raw, source: "Manual Import" };
+          const d = await fetchJson("/api/comps/import", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(payload) });
+          status.textContent = `Imported ${d.imported} comps (pool: ${d.total}). Re-run an appraisal to use them.`;
+        } catch(e){ status.textContent = "Import failed: " + e.message; }
+        finally { $("importComps").disabled = false; }
       });
 
+      // ---- Boot
       (async () => {
         await detectBackend();
-        await refreshCompPool();
-        const input = formInput();
-        latestReport = await appraiseWithApi(input);
-        renderAppraisal(latestReport);
-        await loadHistory();
+        await appraiseAndRender($("domainInput").value);
       })();
     </script>
   </body>

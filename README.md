@@ -1,96 +1,95 @@
-# Domain Appraisal — NovaDomain AI Lab
+# Domain Appraisal — Instant Domain Value Estimates
 
-A high-fidelity, explainable domain appraisal experience with a lightweight Node API and persistent appraisal history.
+A GoDaddy-style domain appraisal tool. Type any domain name and get an instant
+estimated value, a value range, an explainable breakdown of what drives the
+price, and **comparable sales of similar domains** — all from the name alone.
 
-## What makes this unique
+No API keys, no manual data entry, no external dependencies.
 
-- Explainable scoring engine with weighted components (brandability, demand, longevity, semantic depth, TLD power)
-- Deterministic synthetic comparable sales generation for reproducible outputs
-- Liquidity and confidence signals for investor decision support
-- Buyer persona matching by vertical
-- Risk and opportunity radar
-- Negotiation-ready outbound pricing narrative
-- One-click JSON report copy for sharing or automation
-- API-backed appraisal execution
-- Persistent recent-appraisal history
+## How it works
 
-## Quick start (recommended: API mode)
+Unlike a manual scoring sheet, the estimator derives every signal from the
+domain string itself, the way GoDaddy's GoValue does:
 
-1. Run `npm start`.
-2. Open `http://localhost:3000`.
-3. Enter your domain and market assumptions.
-4. Click **Run Deep Appraisal**.
-5. Review the **Recent Appraisals** panel (saved on disk).
+1. **Name analysis** — length, real-word detection (dictionary segmentation),
+   pronounceability, premium keyword tier, hyphen/number penalties, and TLD.
+2. **Structural value model** — a calibrated curve that maps name quality to a
+   baseline `.com` dollar value, then applies premiums for short length, real
+   words, and high-demand keywords, and a multiplier for the extension.
+3. **Comparable-sales anchoring** — the name is matched against a built-in set
+   of public aftermarket sales. When similar domains are found, the estimate is
+   blended toward their (similarity-weighted) median, and the matched sales are
+   shown as evidence.
+4. **Confidence + range** — confidence rises with comp support; the value range
+   widens when evidence is thin.
 
-## Quick start (static mode)
+## Quick start
 
-1. Open `public.html` in your browser.
-2. Enter your domain and market assumptions.
-3. Click **Run Deep Appraisal**.
-4. Use **Copy JSON Report** to export data.
+```bash
+npm start
+# open http://localhost:3000
+```
 
-In static mode, appraisals still work, but history persistence is disabled.
+Type a domain (e.g. `brightpath.com`, `voice.com`, `payflow.ai`) and click
+**Get Value**. Recent appraisals are saved on disk and shown below the result.
 
-## API endpoints
+You can also open `public.html` directly in a browser for an offline estimate
+(comparable-sales matching requires the backend).
 
-- `GET /api/health` — service health check
-- `POST /api/appraise` — run valuation using submitted input payload
-- `GET /api/history?limit=6` — fetch latest saved appraisals
-- `POST /api/history` — save an appraisal entry
-- `GET /api/comps?limit=25` — list comparable sales pool summary
-- `POST /api/comps/import` — import comparable sales data (CSV/JSON)
-- `POST /api/comps/match` — run weighted comparable matching for an input payload
+## API
 
-## Comparable import formats
+- `GET  /api/health` — service health check
+- `POST /api/appraise` — body `{ "domain": "example.com" }` → full appraisal
+- `GET  /api/history?limit=10` — recent appraisals (persisted to disk)
+- `GET  /api/comps?limit=25` — comparable-sales pool (built-in + imported)
+- `POST /api/comps/import` — add your own comps (CSV or JSON)
 
-### CSV
+### Example
 
-Header fields:
+```bash
+curl -s -X POST localhost:3000/api/appraise \
+  -H 'Content-Type: application/json' \
+  -d '{"domain":"brightpath.com"}'
+```
 
-`domain,price,date,vertical,tld,source,traffic,cpc,age,keywords`
+## Adding your own comparable sales
 
-Example:
+The estimator ships with a built-in set of public aftermarket sales. To sharpen
+valuations for a specific niche, import your own verified comps.
 
-`neuralforge.ai,125000,2025-06-11,AI,.ai,NameBio,0,0,0,"neural, forge, ai"`
+**CSV** (`POST /api/comps/import`, `format: "csv"`):
 
-### JSON
+```
+domain,price,date,vertical,venue
+neuralforge.ai,18500,2024-01-01,AI,NameBio
+synthflow.ai,14000,2024-03-01,AI,Dan
+```
 
-Payload to `/api/comps/import` can include `data` as an array of objects:
+**JSON** (`format: "json"`, `data` as an array of objects):
 
-`[{"domain":"neuralforge.ai","price":125000,"date":"2025-06-11","vertical":"AI","tld":".ai","source":"NameBio","keywords":"neural,forge,ai"}]`
+```json
+[{ "domain": "neuralforge.ai", "price": 18500, "date": "2024-01-01", "vertical": "AI", "venue": "NameBio" }]
+```
 
-The matcher uses weighted similarity across label structure, length proximity, TLD relevance, vertical fit, keyword overlap, and recency.
+Imported comps are merged into the matching pool and used on the next appraisal.
 
-## Inputs supported
+## Project layout
 
-- Domain name
-- Vertical
-- TLD profile
-- Monthly traffic
-- Estimated CPC
-- Domain age
-- Buyer intent pressure
-- Semantic keyword hints
-
-## Output signals
-
-- Estimated market value
-- Listing corridor (low/high)
-- Quality score
-- Liquidity class
-- Confidence estimate
-- Component score bars
-- Synthetic comparable sales list
-- Risk/opportunity insight cards
-- Outbound pricing strategy paragraph
+- `appraisal.js` — name analysis, value model, comparable matching (engine)
+- `market-data.js` — word dictionary, keyword tiers, built-in comparable sales
+- `server.js` — zero-dependency Node `http` API + static hosting
+- `public.html` — single-page GoDaddy-style frontend
+- `data/` — JSON persistence for history and imported comps (gitignored)
 
 ## Tech stack
 
-- Plain HTML, CSS, and JavaScript frontend
-- Node.js built-in `http` server backend
-- JSON file persistence at `data/history.json`
-- No external runtime dependencies
+- Node.js built-in `http` server — no runtime dependencies
+- Plain HTML / CSS / JavaScript frontend
+- JSON file persistence
 
 ## Notes
 
-This is an appraisal aid, not financial advice. Use it as a decision-support layer together with real comparable sales and buyer conversations.
+Estimates are a heuristic, comp-anchored decision aid — **not** a guaranteed
+sale price or financial advice. The built-in comparable sales reflect public
+aftermarket data and are illustrative. Always validate with live market
+listings and real buyer conversations.

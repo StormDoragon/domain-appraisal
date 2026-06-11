@@ -1,7 +1,7 @@
 {
   "name": "domain-appraisal",
   "version": "1.0.0",
-  "description": "NovaDomain AI appraisal tool with backend API and persistent history",
+  "description": "GoDaddy-style domain appraisal tool — instant name-based value estimates anchored to comparable sales",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

@@ -1,3 +1,4 @@
 node_modules/
 data/history.json
 data/comps.json
+.vercel

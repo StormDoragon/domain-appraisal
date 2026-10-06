@@ -2,6 +2,7 @@
 
 const http = require("http");
 const fs = require("fs");
+const os = require("os");
 const path = require("path");
 
 const { appraise } = require("./appraisal");
@@ -10,7 +11,15 @@ const { MARKET_COMPS } = require("./market-data");
 const HOST = "0.0.0.0";
 const PORT = Number(process.env.PORT || 3000);
 const ROOT = __dirname;
-const DATA_DIR = path.join(ROOT, "data");
+
+// The repo filesystem is read-only on serverless platforms (e.g. Vercel), so
+// fall back to a writable temp dir there. Persistence is then per-instance and
+// ephemeral, which is fine — appraisals are stateless and history is a nicety.
+const DATA_DIR =
+  process.env.DATA_DIR ||
+  (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME
+    ? path.join(os.tmpdir(), "domain-appraisal")
+    : path.join(ROOT, "data"));
 const HISTORY_FILE = path.join(DATA_DIR, "history.json");
 const COMPS_FILE = path.join(DATA_DIR, "comps.json");
 
@@ -82,8 +91,10 @@ async function ensureDataFiles() {
 }
 
 async function readJsonArray(file) {
-  await ensureDataFiles();
+  // Persistence is best-effort: on a read-only filesystem this degrades to an
+  // empty list rather than failing the request.
   try {
+    await ensureDataFiles();
     const parsed = JSON.parse(await fs.promises.readFile(file, "utf8"));
     return Array.isArray(parsed) ? parsed : [];
   } catch {
@@ -92,8 +103,12 @@ async function readJsonArray(file) {
 }
 
 async function writeJsonArray(file, entries) {
-  await ensureDataFiles();
-  await fs.promises.writeFile(file, JSON.stringify(entries, null, 2) + "\n", "utf8");
+  try {
+    await ensureDataFiles();
+    await fs.promises.writeFile(file, JSON.stringify(entries, null, 2) + "\n", "utf8");
+  } catch {
+    // Ignore write failures (read-only filesystem); appraisals still work.
+  }
 }
 
 const readHistory = () => readJsonArray(HISTORY_FILE);
@@ -130,12 +145,16 @@ function sendJson(res, statusCode, payload) {
 }
 
 async function parseBody(req) {
+  // Some serverless runtimes pre-parse the JSON body onto req.body.
+  if (req.body && typeof req.body === "object") return req.body;
   const chunks = [];
   for await (const chunk of req) {
     chunks.push(chunk);
   }
   if (!chunks.length) return {};
-  return JSON.parse(Buffer.concat(chunks).toString("utf8"));
+  const text = Buffer.concat(chunks).toString("utf8").trim();
+  if (!text) return {};
+  return JSON.parse(text);
 }
 
 function sendFile(res, filePath, contentType) {
@@ -151,9 +170,9 @@ function sendFile(res, filePath, contentType) {
 
 // ---- Server --------------------------------------------------------------
 
-const server = http.createServer(async (req, res) => {
+async function handler(req, res) {
   try {
-    const url = new URL(req.url, `http://${req.headers.host}`);
+    const url = new URL(req.url, `http://${req.headers.host || "localhost"}`);
 
     if (req.method === "GET" && url.pathname === "/api/health") {
       sendJson(res, 200, { ok: true, service: "domain-appraisal-api" });
@@ -205,8 +224,11 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
-    if (req.method === "GET" && (url.pathname === "/" || url.pathname === "/public.html")) {
-      sendFile(res, path.join(ROOT, "public.html"), "text/html; charset=utf-8");
+    if (
+      req.method === "GET" &&
+      (url.pathname === "/" || url.pathname === "/index.html" || url.pathname === "/public.html")
+    ) {
+      sendFile(res, path.join(ROOT, "index.html"), "text/html; charset=utf-8");
       return;
     }
 
@@ -214,11 +236,17 @@ const server = http.createServer(async (req, res) => {
   } catch (error) {
     sendJson(res, 400, { error: error.message || "Request failed" });
   }
-});
+}
 
-server.listen(PORT, HOST, async () => {
-  await ensureDataFiles();
-  console.log(`Domain Appraisal API running on http://${HOST}:${PORT}`);
-});
+const server = http.createServer(handler);
 
-module.exports = { server };
+// Only bind a port when run directly (local dev). On serverless platforms the
+// exported handler is invoked per-request instead.
+if (require.main === module) {
+  server.listen(PORT, HOST, async () => {
+    await ensureDataFiles();
+    console.log(`Domain Appraisal API running on http://${HOST}:${PORT}`);
+  });
+}
+
+module.exports = { handler, server };

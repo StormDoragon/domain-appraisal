@@ -33,8 +33,25 @@ npm start
 Type a domain (e.g. `brightpath.com`, `voice.com`, `payflow.ai`) and click
 **Get Value**. Recent appraisals are saved on disk and shown below the result.
 
-You can also open `public.html` directly in a browser for an offline estimate
+You can also open `index.html` directly in a browser for an offline estimate
 (comparable-sales matching requires the backend).
+
+## Deploying to Vercel
+
+This repo is set up for Vercel's zero-config static + serverless model:
+
+- `index.html` is served statically at `/`.
+- `api/[...path].js` is a serverless function that handles every `/api/*`
+  route by delegating to the shared handler in `server.js` (the same code path
+  as local `npm start`).
+
+Deploy with the Vercel CLI (`vercel` / `vercel --prod`) or by importing the
+repo in the Vercel dashboard — no build step or configuration is required.
+
+> On Vercel the filesystem is read-only, so appraisal history and imported
+> comps are written to a temp dir and are per-instance/ephemeral. The core
+> appraisal is stateless and works regardless. For durable history/comps, point
+> `DATA_DIR` at a writable volume or swap in a database.
 
 ## API
 
@@ -77,8 +94,10 @@ Imported comps are merged into the matching pool and used on the next appraisal.
 
 - `appraisal.js` — name analysis, value model, comparable matching (engine)
 - `market-data.js` — word dictionary, keyword tiers, built-in comparable sales
-- `server.js` — zero-dependency Node `http` API + static hosting
-- `public.html` — single-page GoDaddy-style frontend
+- `server.js` — zero-dependency Node `http` API + static hosting (exports a
+  shared request `handler` reused by the Vercel function)
+- `api/[...path].js` — Vercel serverless entry delegating to that handler
+- `index.html` — single-page GoDaddy-style frontend
 - `data/` — JSON persistence for history and imported comps (gitignored)
 
 ## Tech stack
